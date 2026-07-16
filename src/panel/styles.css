@@ -38,9 +38,10 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 12px;
+  padding: 6px 10px;
   border-bottom: 1px solid var(--border);
   background: var(--bg-raised);
+  flex: none;
 }
 
 .app-title {
@@ -49,9 +50,56 @@ body {
   color: var(--accent);
 }
 
-.app-surface {
-  color: var(--fg-muted);
+.header-spacer {
+  flex: 1;
+}
+
+.run-state {
   font-size: 11px;
+  color: var(--fg-muted);
+}
+
+.run-state-running,
+.run-state-starting {
+  color: var(--warn);
+}
+
+.run-state-passed {
+  color: var(--accent);
+}
+
+.run-state-failed {
+  color: var(--danger);
+}
+
+.btn {
+  font-family: var(--mono);
+  font-size: 12px;
+  padding: 3px 12px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--fg);
+  cursor: pointer;
+}
+
+.btn:hover {
+  border-color: var(--fg-muted);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.btn-primary {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.btn-danger {
+  border-color: var(--danger);
+  color: var(--danger);
 }
 
 .app-body {
@@ -61,7 +109,115 @@ body {
   flex-direction: column;
 }
 
-.placeholder {
-  padding: 12px;
+.editor-pane {
+  flex: 3;
+  min-height: 120px;
+  border-bottom: 1px solid var(--border);
+}
+
+.editor-host {
+  height: 100%;
+  width: 100%;
+}
+
+.log-pane {
+  flex: 2;
+  min-height: 100px;
+  overflow-y: auto;
+  background: var(--bg);
+}
+
+.runlog {
+  padding: 8px 10px;
+}
+
+.runlog-empty {
   color: var(--fg-muted);
+  margin: 4px 0;
+}
+
+.runlog-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.step {
+  padding: 3px 0;
+}
+
+.step-line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.step-icon {
+  width: 14px;
+  flex: none;
+  text-align: center;
+}
+
+.step-passed .step-icon {
+  color: var(--accent);
+}
+
+.step-failed .step-icon {
+  color: var(--danger);
+}
+
+.step-running .step-icon {
+  color: var(--warn);
+}
+
+.step-label {
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+
+.step-duration {
+  color: var(--fg-muted);
+  font-size: 11px;
+  flex: none;
+}
+
+.step-error {
+  margin: 4px 0 4px 22px;
+  padding: 6px 8px;
+  border-left: 2px solid var(--danger);
+  background: rgba(248, 81, 73, 0.08);
+  color: var(--danger);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.step-screenshot {
+  display: block;
+  margin: 6px 0 6px 22px;
+  max-width: calc(100% - 22px);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.run-verdict {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  font-weight: 700;
+}
+
+.run-verdict-passed {
+  color: var(--accent);
+}
+
+.run-verdict-failed {
+  color: var(--danger);
+}
+
+.run-verdict-stopped {
+  color: var(--warn);
+}
+
+.sandbox-frame {
+  display: none;
 }

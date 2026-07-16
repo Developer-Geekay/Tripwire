@@ -16,5 +16,6 @@
     "noEmit": true,
     "types": ["chrome", "vite/client"]
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": ["src/types/ui.d.ts"]
 }

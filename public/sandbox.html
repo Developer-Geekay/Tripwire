@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Tripwire script sandbox</title>
+  </head>
+  <body>
+    <!--
+      Sandboxed executor for user test scripts. MV3 extension pages forbid
+      eval, but pages declared under manifest "sandbox" get a CSP that allows
+      it — so the script runs here, and every ui/page call is proxied to the
+      panel over postMessage, where the CDP engine executes it.
+
+      This file is deliberately a plain inline script: the sandbox has an
+      opaque origin, which makes module-script loading unreliable.
+    -->
+    <script>
+      (function () {
+        "use strict";
+
+        var pending = new Map();
+        var callSeq = 0;
+
+        function call(runId, command) {
+          return new Promise(function (resolve, reject) {
+            var callId = ++callSeq;
+            pending.set(callId, { resolve: resolve, reject: reject });
+            window.parent.postMessage(
+              { type: "tripwire:call", runId: runId, callId: callId, command: command },
+              "*"
+            );
+          });
+        }
+
+        function makeApi(runId) {
+          function expectChain(target, negated) {
+            return {
+              toHaveText: function (expected) {
+                return call(runId, {
+                  kind: "expect",
+                  target: target,
+                  assertion: "toHaveText",
+                  expected: String(expected),
+                  negated: negated,
+                });
+              },
+              toExist: function () {
+                return call(runId, {
+                  kind: "expect",
+                  target: target,
+                  assertion: "toExist",
+                  negated: negated,
+                });
+              },
+              get not() {
+                return expectChain(target, !negated);
+              },
+            };
+          }
+
+          return {
+            page: {
+              goto: function (url) {
+                return call(runId, { kind: "goto", url: String(url) });
+              },
+            },
+            ui: {
+              click: function (target) {
+                return call(runId, { kind: "click", target: String(target) });
+              },
+              type: function (target, text) {
+                return call(runId, { kind: "type", target: String(target), text: String(text) });
+              },
+              expect: function (target) {
+                return expectChain(String(target), false);
+              },
+              setDefaultTimeout: function (ms) {
+                return call(runId, { kind: "setDefaultTimeout", ms: Number(ms) });
+              },
+            },
+          };
+        }
+
+        window.addEventListener("message", function (event) {
+          var msg = event.data;
+          if (!msg || typeof msg !== "object") return;
+
+          if (msg.type === "tripwire:result") {
+            var entry = pending.get(msg.callId);
+            if (!entry) return;
+            pending.delete(msg.callId);
+            if (msg.ok) entry.resolve(undefined);
+            else entry.reject(new Error(msg.error || "Step failed"));
+            return;
+          }
+
+          if (msg.type === "tripwire:run") {
+            var api = makeApi(msg.runId);
+            var AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+            Promise.resolve()
+              .then(function () {
+                var fn = new AsyncFunction("page", "ui", msg.code);
+                return fn(api.page, api.ui);
+              })
+              .then(function () {
+                window.parent.postMessage(
+                  { type: "tripwire:done", runId: msg.runId, ok: true },
+                  "*"
+                );
+              })
+              .catch(function (err) {
+                window.parent.postMessage(
+                  {
+                    type: "tripwire:done",
+                    runId: msg.runId,
+                    ok: false,
+                    error: err && err.message ? err.message : String(err),
+                  },
+                  "*"
+                );
+              });
+          }
+        });
+      })();
+    </script>
+  </body>
+</html>

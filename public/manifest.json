@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "Tripwire",
+  "version": "0.1.0",
+  "description": "In-browser UI test runner. Tampermonkey ergonomics, Playwright semantics, zero toolchain.",
+  "minimum_chrome_version": "116",
+  "action": {
+    "default_title": "Open Tripwire"
+  },
+  "side_panel": {
+    "default_path": "panel.html"
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "sandbox": {
+    "pages": ["sandbox.html"]
+  },
+  "permissions": [
+    "sidePanel",
+    "debugger",
+    "scripting",
+    "storage",
+    "activeTab",
+    "alarms",
+    "tabs"
+  ],
+  "host_permissions": ["<all_urls>"]
+}

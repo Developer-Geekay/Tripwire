@@ -1,7 +1,11 @@
-name: Release
+name: Build and Release
 
+# Every branch push builds and packages the extension and uploads the zip/crx
+# as workflow artifacts (Actions tab → run → Artifacts). Pushing a v* tag
+# additionally publishes a GitHub Release with the same files attached.
 on:
   push:
+    branches: ["**"]
     tags: ["v*"]
   workflow_dispatch:
 

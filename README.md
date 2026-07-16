@@ -42,6 +42,15 @@ Built for QA engineers, analysts, and devs testing **internal enterprise web app
 | `testid=submit` | `[data-testid="submit"]` |
 | `aria=Close dialog` | `[aria-label="Close dialog"]` |
 
+## Releases
+
+Prebuilt packages are published on the [Releases](../../releases) page for every `v*` tag:
+
+- **`tripwire-<version>-chromium.zip`** — unzip and *Load unpacked* in `chrome://extensions` / `edge://extensions`. The easiest way to test.
+- **`tripwire-<version>.crx`** — signed CRX3 package. Chrome on Windows/macOS blocks `.crx` installs from outside the Web Store, so use the zip for manual testing; the `.crx` is for Linux, Edge, and enterprise policy deployment.
+
+Cut a release by pushing a tag (`git tag v0.2.0 && git push origin v0.2.0`) — CI builds, packages, and attaches both artifacts. Locally, `npm run package` produces the same files in `release/`. Set the `CRX_PRIVATE_KEY` repo secret (PEM) to keep the extension ID stable across releases; locally the key persists in the gitignored `.crx-key.pem`.
+
 ## Development
 
 ```

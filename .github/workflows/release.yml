@@ -1,0 +1,52 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build extension
+        run: npm run build
+
+      - name: Package (zip + crx)
+        env:
+          # Set this repo secret to keep the extension ID stable across
+          # releases; without it each release signs with a one-off key.
+          CRX_PRIVATE_KEY: ${{ secrets.CRX_PRIVATE_KEY }}
+          RELEASE_VERSION: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
+        run: node scripts/package.mjs
+
+      - name: Upload build artifacts (manual runs)
+        if: github.ref_type != 'tag'
+        uses: actions/upload-artifact@v4
+        with:
+          name: tripwire-extension
+          path: |
+            release/*.zip
+            release/*.crx
+
+      - name: Publish GitHub Release
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: release/RELEASE_NOTES.md
+          files: |
+            release/*.zip
+            release/*.crx

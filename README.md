@@ -44,6 +44,7 @@ Built for QA engineers, analysts, and devs testing **internal enterprise web app
 | `text="Welcome"` | exact, whitespace-normalized text match |
 | `testid=submit` | `[data-testid="submit"]` |
 | `aria=Close dialog` | `[aria-label="Close dialog"]` |
+| `#orders >> text=pending` | scoped search: each `>>` segment searches within the previous match |
 
 ## Releases
 

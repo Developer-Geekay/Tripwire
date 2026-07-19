@@ -20,16 +20,20 @@ export function tripwireProbe(
   descriptor: string,
   action: "state" | "point" | "focus",
 ): ProbeState | ProbePoint | boolean | null {
-  const sep = descriptor.indexOf(":");
-  const kind = descriptor.slice(0, sep);
-  const target = descriptor.slice(sep + 1);
   const normalize = (s: string | null) => (s ?? "").replace(/\s+/g, " ").trim();
+
+  const isShown = (el: Element): boolean => {
+    const r = el.getBoundingClientRect();
+    const s = getComputedStyle(el);
+    return r.width > 0 && r.height > 0 && s.visibility !== "hidden" && s.display !== "none";
+  };
 
   // Framework compatibility: pierce open shadow roots (web components,
   // Angular/Lit/Stencil component libraries) — document.querySelector alone
-  // cannot see into them.
-  const collectRoots = (): Array<Document | ShadowRoot> => {
-    const roots: Array<Document | ShadowRoot> = [document];
+  // cannot see into them. Scoped to `within` when chaining with ">>".
+  const collectRoots = (within: Element | null): Array<ParentNode> => {
+    const roots: Array<ParentNode> = [within ?? document];
+    if (within?.shadowRoot) roots.push(within.shadowRoot);
     for (let i = 0; i < roots.length; i++) {
       for (const el of roots[i].querySelectorAll("*")) {
         if (el.shadowRoot) roots.push(el.shadowRoot);
@@ -38,26 +42,26 @@ export function tripwireProbe(
     return roots;
   };
 
-  const queryFirst = (selector: string): Element | null => {
-    for (const root of collectRoots()) {
-      try {
-        const hit = root.querySelector(selector);
-        if (hit) return hit;
-      } catch {
-        return null; // invalid selector
-      }
-    }
-    return null;
-  };
+  const findIn = (within: Element | null, kind: string, target: string): Element | null => {
+    const roots = collectRoots(within);
 
-  let element: Element | null = null;
-  if (kind === "css") {
-    element = queryFirst(target);
-  } else if (kind === "testid") {
-    element = queryFirst(`[data-testid="${target.replace(/"/g, '\\"')}"]`);
-  } else if (kind === "aria") {
-    element = queryFirst(`[aria-label="${target.replace(/"/g, '\\"')}"]`);
-  } else if (kind === "text") {
+    const queryFirst = (selector: string): Element | null => {
+      for (const root of roots) {
+        try {
+          const hit = root.querySelector(selector);
+          if (hit) return hit;
+        } catch {
+          return null; // invalid selector
+        }
+      }
+      return null;
+    };
+
+    if (kind === "css") return queryFirst(target);
+    if (kind === "testid") return queryFirst(`[data-testid="${target.replace(/"/g, '\\"')}"]`);
+    if (kind === "aria") return queryFirst(`[aria-label="${target.replace(/"/g, '\\"')}"]`);
+    if (kind !== "text") return null;
+
     // Playwright-style semantics: unquoted = case-insensitive substring;
     // text="..." (quoted) = exact whitespace-normalized match. Traversal is
     // document order with parents before children, so the last match is the
@@ -69,15 +73,10 @@ export function tripwireProbe(
       ((raw.startsWith('"') && raw.endsWith('"')) || (raw.startsWith("'") && raw.endsWith("'")));
     const wanted = normalize(quoted ? raw.slice(1, -1) : raw);
     const wantedLower = wanted.toLowerCase();
-    const isShown = (el: Element): boolean => {
-      const r = el.getBoundingClientRect();
-      const s = getComputedStyle(el);
-      return r.width > 0 && r.height > 0 && s.visibility !== "hidden" && s.display !== "none";
-    };
     let lastAny: Element | null = null;
     let lastVisible: Element | null = null;
     if (wanted) {
-      for (const root of collectRoots()) {
+      for (const root of roots) {
         for (const candidate of root.querySelectorAll("*")) {
           if (candidate.tagName === "SCRIPT" || candidate.tagName === "STYLE") continue;
           const text = normalize(candidate.textContent);
@@ -88,7 +87,19 @@ export function tripwireProbe(
         }
       }
     }
-    element = lastVisible ?? lastAny;
+    return lastVisible ?? lastAny;
+  };
+
+  // ">>"-chained descriptors scope each step to the previous match:
+  // "css:#orders>>text:pending" finds the text only inside #orders.
+  let element: Element | null = null;
+  for (const segment of descriptor.split(">>")) {
+    const part = segment.trim();
+    const sep = part.indexOf(":");
+    const kind = part.slice(0, sep);
+    const target = part.slice(sep + 1);
+    element = findIn(element, kind, target);
+    if (!element) break;
   }
 
   if (action === "state") {

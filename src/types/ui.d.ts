@@ -12,6 +12,10 @@
  *   "testid=submit-btn"  matches [data-testid="submit-btn"]
  *   "aria=Close dialog"  matches [aria-label="Close dialog"]
  *
+ * Chain segments with ">>" to scope a search to a parent element:
+ *   "#orders >> text=pending"   the text is searched only inside #orders
+ *   "#form >> .row >> testid=x" each step searches within the previous match
+ *
  * Selectors pierce open shadow roots, so components rendered by web-component
  * frameworks are reachable with plain CSS.
  *

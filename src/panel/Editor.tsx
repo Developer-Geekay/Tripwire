@@ -5,9 +5,10 @@ interface EditorProps {
   value: string;
   onChange(value: string): void;
   readOnly?: boolean;
+  onMount?(editor: monaco.editor.IStandaloneCodeEditor): void;
 }
 
-export function Editor({ value, onChange, readOnly = false }: EditorProps) {
+export function Editor({ value, onChange, readOnly = false, onMount }: EditorProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const onChangeRef = useRef(onChange);
@@ -28,6 +29,7 @@ export function Editor({ value, onChange, readOnly = false }: EditorProps) {
     });
     editor.onDidChangeModelContent(() => onChangeRef.current(editor.getValue()));
     editorRef.current = editor;
+    onMount?.(editor);
     return () => {
       editorRef.current = null;
       editor.dispose();

@@ -16,10 +16,15 @@ export default defineConfig({
         panel: resolve(__dirname, "panel.html"),
         tab: resolve(__dirname, "tab.html"),
         background: resolve(__dirname, "src/background/service-worker.ts"),
+        // Injected via chrome.scripting.executeScript as a classic script —
+        // it must bundle to a single root-level file with no imports/exports.
+        picker: resolve(__dirname, "src/content/picker.ts"),
       },
       output: {
         entryFileNames: (chunk) =>
-          chunk.name === "background" ? "background.js" : "assets/[name]-[hash].js",
+          chunk.name === "background" || chunk.name === "picker"
+            ? "[name].js"
+            : "assets/[name]-[hash].js",
       },
     },
   },

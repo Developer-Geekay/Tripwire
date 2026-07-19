@@ -31,6 +31,8 @@ Built for QA engineers, analysts, and devs testing **internal enterprise web app
 3. Open the page you want to test in a normal tab.
 4. Click the Tripwire toolbar icon — the side panel opens with an editor.
 5. Write your script (IntelliSense included) and hit **run**. Steps stream into the log; failures capture a screenshot inline.
+6. Use **pick** to grab a selector straight from the page: hover highlights elements with a ranked selector suggestion (`data-testid` → `id` → `aria` → text → CSS path), click inserts it at the cursor, Esc cancels.
+7. Manage multiple scripts in the library bar (new/rename/delete); **export**/**import** moves them as JSON so they can live in git.
 
 ### Selector syntax
 
@@ -65,6 +67,7 @@ Architecture, phasing, and the extension seams (selector providers, cross-extens
 ```
 src/
   panel/        React + Monaco UI (side panel and full-tab editor share it)
+  content/      element picker overlay + selector ranking (recorder reuses it)
   background/   MV3 service worker (lifecycle; scheduling later)
   engine/
     cdp/        chrome.debugger session wrapper

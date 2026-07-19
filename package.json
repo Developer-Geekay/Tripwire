@@ -1,7 +1,7 @@
 {
   "name": "tripwire",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "In-browser UI test runner extension. Tampermonkey ergonomics, Playwright semantics, zero toolchain.",
   "type": "module",
   "scripts": {

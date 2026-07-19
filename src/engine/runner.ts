@@ -34,8 +34,8 @@ function isAutomatable(tab: chrome.tabs.Tab): boolean {
 
 // The panel can't automate itself or other extension pages, so pick the
 // active page tab: current window first (side panel case), then the last
-// focused window (full-tab editor case).
-async function findTargetTab(): Promise<chrome.tabs.Tab> {
+// focused window (full-tab editor case). Also used by the element picker.
+export async function findTargetTab(): Promise<chrome.tabs.Tab> {
   const [current] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (current && isAutomatable(current)) return current;
   const [focused] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });

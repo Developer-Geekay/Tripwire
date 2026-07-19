@@ -58,6 +58,19 @@ Prebuilt packages are also published on the [Releases](../../releases) page for 
 
 Cut a release by pushing a tag (`git tag v0.2.0 && git push origin v0.2.0`) — CI builds, packages, and attaches both artifacts. Locally, `npm run package` produces the same files in `release/`. Set the `CRX_PRIVATE_KEY` repo secret (PEM) to keep the extension ID stable across releases; locally the key persists in the gitignored `.crx-key.pem`.
 
+## Debugging
+
+Install the **dev zip** (`tripwire-<version>-chromium-dev.zip`, unminified + sourcemaps, shows up as "Tripwire (Dev)") and open DevTools on the surface you're interested in:
+
+| Context | How to inspect |
+|---|---|
+| Runner + UI (most issues) | right-click inside the side panel → Inspect |
+| Service worker | `chrome://extensions` → Inspect views: service worker |
+| Your test script | panel DevTools → Sources → the `sandbox.html` frame |
+| Element picker | DevTools on the target page → Sources → Content scripts |
+
+Breakpoints work in the original TypeScript via sourcemaps. A `debugger;` statement inside a test script pauses the run when the panel's DevTools is open. When filing an issue, include the failing step's log line (it reports the actual text/value found) and the console stack trace from the dev build.
+
 ## Development
 
 ```

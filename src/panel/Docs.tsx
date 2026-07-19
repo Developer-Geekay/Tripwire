@@ -39,6 +39,13 @@ await ui.click("text=More information...");
       <dl>
         <dt><code>page.goto(url)</code></dt>
         <dd>Navigate and wait for the page load. Relative URLs resolve against the tab's current page.</dd>
+        <dt><code>page.goto(url, {"{ spa: true }"})</code></dt>
+        <dd>
+          Client-side navigation without a reload: pushes the URL and fires
+          popstate/hashchange so SPA routers switch routes while app state
+          survives (same-origin only). Clicking the app's own nav link is the
+          most realistic alternative.
+        </dd>
         <dt><code>ui.click(selector)</code></dt>
         <dd>Trusted click at the element's center. Waits for the element to be visible first.</dd>
         <dt><code>ui.type(selector, text)</code></dt>

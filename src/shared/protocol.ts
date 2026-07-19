@@ -4,7 +4,7 @@
 export type ExpectAssertion = "toHaveText" | "toContainText" | "toHaveValue" | "toExist";
 
 export type Command =
-  | { kind: "goto"; url: string }
+  | { kind: "goto"; url: string; spa?: boolean }
   | { kind: "click"; target: string }
   | { kind: "type"; target: string; text: string }
   | { kind: "fill"; target: string; text: string }
@@ -54,7 +54,7 @@ export type HostToSandbox = RunMessage | ResultMessage;
 export function commandLabel(command: Command): string {
   switch (command.kind) {
     case "goto":
-      return `goto ${command.url}`;
+      return `goto ${command.url}${command.spa ? " (spa)" : ""}`;
     case "click":
       return `click ${command.target}`;
     case "type":

@@ -92,8 +92,14 @@ interface TripwirePage {
   /**
    * Navigate the target tab and wait for the page load event.
    * Relative URLs resolve against the tab's current page.
+   *
+   * Pass `{ spa: true }` for client-side navigation without a reload: the URL
+   * is pushed onto the history and popstate/hashchange fire, so SPA routers
+   * (React Router, Angular, Vue Router) switch routes while app state
+   * survives. Same-origin only. Clicking the app's own nav links
+   * (`ui.click("text=Orders")`) is the most realistic alternative.
    */
-  goto(url: string): Promise<void>;
+  goto(url: string, options?: { spa?: boolean }): Promise<void>;
 }
 
 declare const ui: TripwireUi;

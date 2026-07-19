@@ -103,8 +103,24 @@ export class Primitives {
     if (this.options.slowMoMs > 0) await sleep(this.options.slowMoMs);
   }
 
-  async goto(url: string): Promise<void> {
+  async goto(url: string, spa = false): Promise<void> {
     const target = await this.resolveUrl(url);
+    if (spa) {
+      // SPA-router navigation: push the URL and fire popstate so client-side
+      // routers (React Router, Angular, Vue Router) pick it up — the page is
+      // NOT reloaded, so app state survives. Same-origin only by nature.
+      await this.evaluate(
+        `(function (u) {
+          history.pushState(history.state, "", u);
+          window.dispatchEvent(new PopStateEvent("popstate", { state: history.state }));
+          if (u.indexOf("#") !== -1) {
+            window.dispatchEvent(new HashChangeEvent("hashchange"));
+          }
+          return location.href;
+        })(${JSON.stringify(target)})`,
+      );
+      return;
+    }
     const loaded = this.session.waitForEvent(
       "Page.loadEventFired",
       this.options.navigationTimeoutMs,
@@ -317,7 +333,12 @@ export class Primitives {
   }
 
   private async probe<T>(descriptor: string, action: "state" | "point" | "focus"): Promise<T> {
-    const expression = `(${PROBE_SOURCE})(${JSON.stringify(descriptor)}, ${JSON.stringify(action)})`;
+    return this.evaluate<T>(
+      `(${PROBE_SOURCE})(${JSON.stringify(descriptor)}, ${JSON.stringify(action)})`,
+    );
+  }
+
+  private async evaluate<T>(expression: string): Promise<T> {
     const result = await this.session.send<{
       result: { value?: T };
       exceptionDetails?: { text: string; exception?: { description?: string } };

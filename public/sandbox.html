@@ -60,8 +60,12 @@
 
           return {
             page: {
-              goto: function (url) {
-                return call(runId, { kind: "goto", url: String(url) });
+              goto: function (url, options) {
+                return call(runId, {
+                  kind: "goto",
+                  url: String(url),
+                  spa: !!(options && options.spa),
+                });
               },
             },
             ui: {

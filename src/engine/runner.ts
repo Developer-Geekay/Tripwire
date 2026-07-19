@@ -191,7 +191,7 @@ export class TestRunner {
       await primitives.applySlowMo();
       switch (command.kind) {
         case "goto":
-          await primitives.goto(command.url);
+          await primitives.goto(command.url, command.spa ?? false);
           break;
         case "click":
           await primitives.click(command.target);

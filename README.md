@@ -46,7 +46,9 @@ Built for QA engineers, analysts, and devs testing **internal enterprise web app
 
 ## Releases
 
-Prebuilt packages are published on the [Releases](../../releases) page for every `v*` tag:
+**Download page: https://developer-geekay.github.io/Tripwire/** — the latest build's zip and crx are served straight from `github.io`, which usually stays reachable on corporate networks that block direct `github.com` downloads. The page shows the version, source commit, and sha256 checksums.
+
+Prebuilt packages are also published on the [Releases](../../releases) page for every `v*` tag:
 
 - **`tripwire-<version>-chromium.zip`** — unzip and *Load unpacked* in `chrome://extensions` / `edge://extensions`. The easiest way to test.
 - **`tripwire-<version>.crx`** — signed CRX3 package. Chrome on Windows/macOS blocks `.crx` installs from outside the Web Store, so use the zip for manual testing; the `.crx` is for Linux, Edge, and enterprise policy deployment.

@@ -54,3 +54,36 @@ jobs:
           files: |
             release/*.zip
             release/*.crx
+
+      - name: Assemble Pages download site
+        run: node scripts/build-site.mjs
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site-dist
+
+  # Serves the zip/crx from *.github.io — org proxies often block direct
+  # github.com release downloads.
+  deploy-pages:
+    if: github.event_name == 'push'
+    needs: release
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    concurrency:
+      group: github-pages
+      cancel-in-progress: true
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Enable and configure Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

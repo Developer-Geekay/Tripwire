@@ -146,3 +146,4 @@ vite.config.ts.timestamp-*
 release/
 .crx-key.pem
 *.crx
+site-dist/

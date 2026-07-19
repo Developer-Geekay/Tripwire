@@ -22,6 +22,9 @@ const PROBE_SOURCE = tripwireProbe.toString();
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+const NOT_FOUND_DETAIL =
+  "element not found — check the selector; note that elements inside iframes are not reachable yet";
+
 type Attempt<T> = { done: true; value: T } | { done: false; detail?: string };
 
 interface KeyDef {
@@ -166,20 +169,25 @@ export class Primitives {
         let detail: string;
         if (assertion === "toExist") {
           condition = state.found;
-          detail = state.found ? "element exists" : "element not found";
+          detail = state.found ? "element exists" : NOT_FOUND_DETAIL;
         } else if (assertion === "toHaveValue") {
           condition = state.found && state.value !== null && state.value.trim() === (expected ?? "").trim();
           detail = !state.found
-            ? "element not found"
+            ? NOT_FOUND_DETAIL
             : state.value === null
               ? "element is not an input/textarea/select"
               : `value was ${JSON.stringify(state.value)}`;
         } else if (assertion === "toContainText") {
           condition = state.found && (state.text ?? "").includes(normExpected);
-          detail = state.found ? `text was ${JSON.stringify(state.text)}` : "element not found";
+          detail = state.found ? `text was ${JSON.stringify(state.text)}` : NOT_FOUND_DETAIL;
         } else {
           condition = state.found && state.text === normExpected;
-          detail = state.found ? `text was ${JSON.stringify(state.text)}` : "element not found";
+          detail = !state.found
+            ? NOT_FOUND_DETAIL
+            : `text was ${JSON.stringify(state.text)}` +
+              ((state.text ?? "").includes(normExpected) && state.text !== normExpected
+                ? " — it contains the expected text; toHaveText is an exact match, use toContainText for partial matches"
+                : "");
         }
         const pass = negated ? !condition : condition;
         return pass ? { done: true, value: undefined } : { done: false, detail };
@@ -201,7 +209,7 @@ export class Primitives {
     descriptor: string,
   ): Promise<{ ok: true; point: ProbePoint } | { ok: false; detail: string }> {
     const state = await this.probeState(descriptor);
-    if (!state.found) return { ok: false, detail: "element not found" };
+    if (!state.found) return { ok: false, detail: NOT_FOUND_DETAIL };
     if (!state.visible) return { ok: false, detail: "element not visible" };
     const point = await this.probe<ProbePoint | null>(descriptor, "point");
     if (!point) return { ok: false, detail: "element has no clickable area" };

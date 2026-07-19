@@ -40,7 +40,8 @@ Built for QA engineers, analysts, and devs testing **internal enterprise web app
 |---|---|
 | `#login` | CSS selector (default) |
 | `css=#login` | CSS, explicit |
-| `text=Welcome` | exact, whitespace-normalized text match |
+| `text=welcome` | case-insensitive substring match on visible text (deepest visible element) |
+| `text="Welcome"` | exact, whitespace-normalized text match |
 | `testid=submit` | `[data-testid="submit"]` |
 | `aria=Close dialog` | `[aria-label="Close dialog"]` |
 

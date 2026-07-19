@@ -58,16 +58,37 @@ export function tripwireProbe(
   } else if (kind === "aria") {
     element = queryFirst(`[aria-label="${target.replace(/"/g, '\\"')}"]`);
   } else if (kind === "text") {
-    // Innermost element whose whitespace-normalized text is an exact match:
-    // traversal is document order with parents before children, so the last
-    // match is the deepest one.
-    const wanted = normalize(target);
-    for (const root of collectRoots()) {
-      for (const candidate of root.querySelectorAll("*")) {
-        if (candidate.tagName === "SCRIPT" || candidate.tagName === "STYLE") continue;
-        if (normalize(candidate.textContent) === wanted) element = candidate;
+    // Playwright-style semantics: unquoted = case-insensitive substring;
+    // text="..." (quoted) = exact whitespace-normalized match. Traversal is
+    // document order with parents before children, so the last match is the
+    // deepest element carrying the text; visible matches are preferred over
+    // hidden duplicates (menus, templates, responsive twins).
+    const raw = target.trim();
+    const quoted =
+      raw.length > 1 &&
+      ((raw.startsWith('"') && raw.endsWith('"')) || (raw.startsWith("'") && raw.endsWith("'")));
+    const wanted = normalize(quoted ? raw.slice(1, -1) : raw);
+    const wantedLower = wanted.toLowerCase();
+    const isShown = (el: Element): boolean => {
+      const r = el.getBoundingClientRect();
+      const s = getComputedStyle(el);
+      return r.width > 0 && r.height > 0 && s.visibility !== "hidden" && s.display !== "none";
+    };
+    let lastAny: Element | null = null;
+    let lastVisible: Element | null = null;
+    if (wanted) {
+      for (const root of collectRoots()) {
+        for (const candidate of root.querySelectorAll("*")) {
+          if (candidate.tagName === "SCRIPT" || candidate.tagName === "STYLE") continue;
+          const text = normalize(candidate.textContent);
+          const match = quoted ? text === wanted : text.toLowerCase().includes(wantedLower);
+          if (!match) continue;
+          lastAny = candidate;
+          if (isShown(candidate)) lastVisible = candidate;
+        }
       }
     }
+    element = lastVisible ?? lastAny;
   }
 
   if (action === "state") {

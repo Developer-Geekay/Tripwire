@@ -64,9 +64,11 @@ export function rankSelector(el: Element): string {
     return `aria=${aria}`;
   }
 
+  // Quoted form = exact match, so the picked ref can't drift onto other
+  // elements that merely contain the same words.
   const text = normalize(el.textContent);
-  if (text && text.length <= 40 && !text.includes("=") && textRefMatches(el, text)) {
-    return `text=${text}`;
+  if (text && text.length <= 40 && !text.includes('"') && textRefMatches(el, text)) {
+    return `text="${text}"`;
   }
 
   return cssPath(el);

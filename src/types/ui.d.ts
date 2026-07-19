@@ -4,11 +4,13 @@
  * Scripts run with top-level await and two globals: `page` and `ui`.
  *
  * Selector syntax (everywhere a selector is accepted):
- *   "#login"            CSS selector (the default)
- *   "css=#login"        CSS selector, explicit
- *   "text=Welcome"      exact, whitespace-normalized text match
- *   "testid=submit-btn" matches [data-testid="submit-btn"]
- *   "aria=Close dialog" matches [aria-label="Close dialog"]
+ *   "#login"             CSS selector (the default)
+ *   "css=#login"         CSS selector, explicit
+ *   "text=welcome"       case-insensitive substring match on visible text —
+ *                        picks the deepest visible element containing it
+ *   "text=\"Welcome\""   exact, whitespace-normalized text match
+ *   "testid=submit-btn"  matches [data-testid="submit-btn"]
+ *   "aria=Close dialog"  matches [aria-label="Close dialog"]
  *
  * Selectors pierce open shadow roots, so components rendered by web-component
  * frameworks are reachable with plain CSS.

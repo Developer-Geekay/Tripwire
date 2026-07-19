@@ -275,3 +275,96 @@ body {
 .sandbox-frame {
   display: none;
 }
+
+.docs-pane {
+  overflow-y: auto;
+  display: block;
+}
+
+.docs {
+  padding: 10px 14px 24px;
+  max-width: 720px;
+  line-height: 1.55;
+}
+
+.docs h2 {
+  font-size: 13px;
+  color: var(--accent);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin: 18px 0 6px;
+}
+
+.docs h2:first-child {
+  margin-top: 4px;
+}
+
+.docs code {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 0 4px;
+}
+
+.docs dl {
+  margin: 0;
+}
+
+.docs dt {
+  margin-top: 8px;
+  font-weight: 700;
+}
+
+.docs dd {
+  margin: 2px 0 0 14px;
+  color: var(--fg-muted);
+}
+
+.docs table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.docs td {
+  border: 1px solid var(--border);
+  padding: 4px 8px;
+  vertical-align: top;
+}
+
+.docs td:last-child {
+  color: var(--fg-muted);
+}
+
+.docs ol {
+  margin: 4px 0;
+  padding-left: 20px;
+}
+
+.docs li {
+  margin: 3px 0;
+}
+
+.docs p {
+  color: var(--fg-muted);
+}
+
+.docs-example {
+  position: relative;
+  margin: 8px 0;
+}
+
+.docs-example pre {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin: 0;
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.docs-example .btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+}

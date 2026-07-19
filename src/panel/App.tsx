@@ -11,6 +11,7 @@ import {
   uniqueName,
   type ScriptRecord,
 } from "./db";
+import { Docs } from "./Docs";
 import { Editor } from "./Editor";
 import { Library } from "./Library";
 import { RunLog } from "./RunLog";
@@ -42,6 +43,7 @@ export function App({ surface }: { surface: "panel" | "tab" }) {
   const [runMessage, setRunMessage] = useState<string | undefined>();
   const [picking, setPicking] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [showDocs, setShowDocs] = useState(false);
   const sandboxRef = useRef<HTMLIFrameElement>(null);
   const editorRef = useRef<monacoEditor.IStandaloneCodeEditor | null>(null);
 
@@ -245,12 +247,32 @@ export function App({ surface }: { surface: "panel" | "tab" }) {
     void chrome.tabs.create({ url: chrome.runtime.getURL("tab.html") });
   }, []);
 
+  const insertSnippet = useCallback((code: string) => {
+    setShowDocs(false);
+    const editor = editorRef.current;
+    if (!editor) return;
+    const selection = editor.getSelection();
+    if (selection) {
+      editor.executeEdits("tripwire-docs", [
+        { range: selection, text: code, forceMoveMarkers: true },
+      ]);
+    }
+    editor.focus();
+  }, []);
+
   return (
     <div className={`app ${surface === "tab" ? "app-tab" : ""}`}>
       <header className="app-header">
         <span className="app-title">tripwire</span>
         <span className={`run-state run-state-${runState}`}>{runState}</span>
         <span className="header-spacer" />
+        <button
+          className={`btn ${showDocs ? "btn-primary" : ""}`}
+          onClick={() => setShowDocs((v) => !v)}
+          title="Usage guide: API, selectors, troubleshooting"
+        >
+          docs
+        </button>
         <button
           className="btn"
           onClick={handlePick}
@@ -286,7 +308,7 @@ export function App({ surface }: { surface: "panel" | "tab" }) {
         onImport={(file) => void handleImport(file)}
       />
       {notice && <div className="notice">{notice}</div>}
-      <main className="app-body">
+      <main className="app-body" style={showDocs ? { display: "none" } : undefined}>
         <section className="editor-pane">
           <Editor
             value={current?.code ?? ""}
@@ -299,6 +321,11 @@ export function App({ surface }: { surface: "panel" | "tab" }) {
           <RunLog steps={steps} runState={runState} runMessage={runMessage} />
         </section>
       </main>
+      {showDocs && (
+        <main className="app-body docs-pane">
+          <Docs onInsert={insertSnippet} />
+        </main>
+      )}
       <iframe
         ref={sandboxRef}
         className="sandbox-frame"

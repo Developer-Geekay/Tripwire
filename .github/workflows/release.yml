@@ -69,6 +69,10 @@ jobs:
     if: github.event_name == 'push'
     needs: release
     runs-on: ubuntu-latest
+    # The workflow token cannot enable Pages itself — that is a one-time
+    # manual step (repo Settings → Pages → Source: "GitHub Actions"). Until
+    # then this job fails softly instead of failing the whole run.
+    continue-on-error: true
     permissions:
       pages: write
       id-token: write

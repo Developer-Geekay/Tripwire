@@ -10,13 +10,18 @@ export interface RunOptions {
   defaultTimeoutMs: number;
   navigationTimeoutMs: number;
   pollIntervalMs: number;
+  /** Delay applied before every action/assertion (0 = off). */
+  slowMoMs: number;
 }
 
 export const DEFAULT_RUN_OPTIONS: RunOptions = {
   defaultTimeoutMs: 10_000,
   navigationTimeoutMs: 30_000,
   pollIntervalMs: 100,
+  slowMoMs: 0,
 };
+
+const MAX_WAIT_MS = 600_000;
 
 const PROBE_SOURCE = tripwireProbe.toString();
 
@@ -81,6 +86,21 @@ export class Primitives {
 
   setDefaultTimeout(ms: number): void {
     if (Number.isFinite(ms) && ms > 0) this.options.defaultTimeoutMs = ms;
+  }
+
+  setSlowMo(ms: number): void {
+    if (Number.isFinite(ms) && ms >= 0) this.options.slowMoMs = Math.min(ms, MAX_WAIT_MS);
+  }
+
+  /** Explicit pause between steps (capped at 10 minutes). */
+  async wait(ms: number): Promise<void> {
+    if (!Number.isFinite(ms) || ms < 0) throw new Error(`Invalid wait duration: ${ms}`);
+    await sleep(Math.min(ms, MAX_WAIT_MS));
+  }
+
+  /** Applied by the runner before each action when slowMo is set. */
+  async applySlowMo(): Promise<void> {
+    if (this.options.slowMoMs > 0) await sleep(this.options.slowMoMs);
   }
 
   async goto(url: string): Promise<void> {

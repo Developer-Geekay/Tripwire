@@ -100,8 +100,11 @@ await ui.press("Enter");
       </dl>
       <p>
         Every action and assertion <b>auto-waits</b>: it retries until it succeeds or the
-        timeout (default 10s) elapses. Never add manual sleeps —
-        raise the timeout instead: <code>await ui.setDefaultTimeout(20000);</code>
+        timeout (default 10s) elapses. Prefer raising the timeout
+        (<code>await ui.setDefaultTimeout(20000);</code>) over manual pauses. When you do
+        need explicit pacing: <code>await ui.wait(1500);</code> pauses once;
+        <code>await ui.setSlowMo(500);</code> delays every following step — handy for
+        watching a run at human speed. <code>ui.setSlowMo(0)</code> turns it off.
       </p>
       <Example
         onInsert={onInsert}

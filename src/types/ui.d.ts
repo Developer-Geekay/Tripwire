@@ -71,6 +71,19 @@ interface TripwireUi {
   press(key: string): Promise<void>;
   /** Start an auto-waiting assertion on the element. */
   expect(selector: string): TripwireExpectation;
+  /**
+   * Pause for `ms` milliseconds as an explicit step (max 10 minutes).
+   * Prefer assertions for waiting on app state — auto-wait handles most
+   * timing; use wait() for animations, debounces, or background jobs that
+   * have no observable DOM change to assert on.
+   */
+  wait(ms: number): Promise<void>;
+  /**
+   * Delay every subsequent action/assertion by `ms` milliseconds (0 turns it
+   * off). Useful to watch a run at human speed or to pace a script against a
+   * slow application without sprinkling wait() calls.
+   */
+  setSlowMo(ms: number): Promise<void>;
   /** Change the auto-wait timeout for subsequent steps (default 10000 ms). */
   setDefaultTimeout(ms: number): Promise<void>;
 }

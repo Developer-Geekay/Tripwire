@@ -80,6 +80,12 @@
               press: function (key) {
                 return call(runId, { kind: "press", key: String(key) });
               },
+              wait: function (ms) {
+                return call(runId, { kind: "wait", ms: Number(ms) });
+              },
+              setSlowMo: function (ms) {
+                return call(runId, { kind: "setSlowMo", ms: Number(ms) });
+              },
               expect: function (target) {
                 return expectChain(String(target), false);
               },

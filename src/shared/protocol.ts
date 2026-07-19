@@ -10,6 +10,8 @@ export type Command =
   | { kind: "fill"; target: string; text: string }
   | { kind: "clear"; target: string }
   | { kind: "press"; key: string }
+  | { kind: "wait"; ms: number }
+  | { kind: "setSlowMo"; ms: number }
   | {
       kind: "expect";
       target: string;
@@ -63,6 +65,10 @@ export function commandLabel(command: Command): string {
       return `clear ${command.target}`;
     case "press":
       return `press ${command.key}`;
+    case "wait":
+      return `wait ${command.ms}ms`;
+    case "setSlowMo":
+      return `setSlowMo ${command.ms}ms`;
     case "expect": {
       const not = command.negated ? ".not" : "";
       const arg = command.expected !== undefined ? JSON.stringify(command.expected) : "";

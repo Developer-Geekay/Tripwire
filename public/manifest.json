@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Tripwire",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "In-browser UI test runner. Tampermonkey ergonomics, Playwright semantics, zero toolchain.",
   "minimum_chrome_version": "116",
   "action": {

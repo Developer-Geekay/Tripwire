@@ -173,6 +173,12 @@ export class TestRunner {
       return;
     }
 
+    if (command.kind === "setSlowMo") {
+      primitives.setSlowMo(command.ms);
+      this.reply(source, { type: "tripwire:result", callId, ok: true });
+      return;
+    }
+
     const step: StepRecord = {
       id: ++this.stepSeq,
       label: commandLabel(command),
@@ -182,6 +188,7 @@ export class TestRunner {
     const startedAt = performance.now();
 
     try {
+      await primitives.applySlowMo();
       switch (command.kind) {
         case "goto":
           await primitives.goto(command.url);
@@ -200,6 +207,9 @@ export class TestRunner {
           break;
         case "press":
           await primitives.press(command.key);
+          break;
+        case "wait":
+          await primitives.wait(command.ms);
           break;
         case "expect":
           await primitives.expect(

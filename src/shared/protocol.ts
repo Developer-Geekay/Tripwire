@@ -1,14 +1,18 @@
 // Message protocol between the panel (RPC host, owns the CDP session) and the
 // sandboxed script executor page (owns the eval'd user script).
 
+export type ExpectAssertion = "toHaveText" | "toContainText" | "toHaveValue" | "toExist";
+
 export type Command =
   | { kind: "goto"; url: string }
   | { kind: "click"; target: string }
   | { kind: "type"; target: string; text: string }
+  | { kind: "clear"; target: string }
+  | { kind: "press"; key: string }
   | {
       kind: "expect";
       target: string;
-      assertion: "toHaveText" | "toExist";
+      assertion: ExpectAssertion;
       expected?: string;
       negated: boolean;
     }
@@ -52,6 +56,10 @@ export function commandLabel(command: Command): string {
       return `click ${command.target}`;
     case "type":
       return `type ${command.target} ${JSON.stringify(command.text)}`;
+    case "clear":
+      return `clear ${command.target}`;
+    case "press":
+      return `press ${command.key}`;
     case "expect": {
       const not = command.negated ? ".not" : "";
       const arg = command.expected !== undefined ? JSON.stringify(command.expected) : "";

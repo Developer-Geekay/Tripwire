@@ -45,7 +45,8 @@ const repoUrl = process.env.GITHUB_REPOSITORY
   ? `https://github.com/${process.env.GITHUB_REPOSITORY}`
   : "https://github.com/Developer-Geekay/Tripwire";
 
-const zip = artifacts.find((a) => a.name.endsWith(".zip"));
+const zip = artifacts.find((a) => a.name.endsWith(".zip") && !a.name.endsWith("-dev.zip"));
+const devZip = artifacts.find((a) => a.name.endsWith("-dev.zip"));
 const crx = artifacts.find((a) => a.name.endsWith(".crx"));
 
 const row = (a, label, note) => `
@@ -94,6 +95,7 @@ const html = `<!doctype html>
   <h1>tripwire</h1>
   <p class="meta">in-browser UI test runner · v${version} · built ${builtAt} from <code>${ref}</code>@<code>${sha}</code></p>
 ${zip ? row(zip, "Recommended", "unzip, then chrome://extensions or edge://extensions → Developer mode → Load unpacked → select the unzipped folder.") : ""}
+${devZip ? row(devZip, "Debug build", "unminified with sourcemaps — installs as “Tripwire (Dev)”. Use it to step through the extension's code in DevTools when reporting issues.") : ""}
 ${crx ? row(crx, "Signed CRX3", "Chrome on Windows/macOS blocks .crx installs from outside the Web Store; use it on Linux, Edge, or via enterprise policy.") : ""}
   <h2>Install (zip)</h2>
   <ol>

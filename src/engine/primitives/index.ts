@@ -1,5 +1,6 @@
 import { CdpError, CdpSession } from "../cdp/session";
 import { SelectorRegistry } from "../providers/selector/types";
+import type { ExpectAssertion } from "../../shared/protocol";
 import { tripwireProbe, type ProbePoint, type ProbeState } from "./inpage";
 
 export class TimeoutError extends Error {}
@@ -22,6 +23,45 @@ const PROBE_SOURCE = tripwireProbe.toString();
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 type Attempt<T> = { done: true; value: T } | { done: false; detail?: string };
+
+interface KeyDef {
+  key: string;
+  code: string;
+  vk: number;
+  text?: string;
+}
+
+// Named keys usable with ui.press() and internally (clear, newline typing).
+const NAMED_KEYS: Record<string, KeyDef> = {
+  Enter: { key: "Enter", code: "Enter", vk: 13, text: "\r" },
+  Tab: { key: "Tab", code: "Tab", vk: 9 },
+  Backspace: { key: "Backspace", code: "Backspace", vk: 8 },
+  Delete: { key: "Delete", code: "Delete", vk: 46 },
+  Escape: { key: "Escape", code: "Escape", vk: 27 },
+  ArrowLeft: { key: "ArrowLeft", code: "ArrowLeft", vk: 37 },
+  ArrowUp: { key: "ArrowUp", code: "ArrowUp", vk: 38 },
+  ArrowRight: { key: "ArrowRight", code: "ArrowRight", vk: 39 },
+  ArrowDown: { key: "ArrowDown", code: "ArrowDown", vk: 40 },
+  Home: { key: "Home", code: "Home", vk: 36 },
+  End: { key: "End", code: "End", vk: 35 },
+  PageUp: { key: "PageUp", code: "PageUp", vk: 33 },
+  PageDown: { key: "PageDown", code: "PageDown", vk: 34 },
+};
+
+function charKeyDef(ch: string): KeyDef {
+  if (/^[a-zA-Z]$/.test(ch)) {
+    return { key: ch, code: `Key${ch.toUpperCase()}`, vk: ch.toUpperCase().charCodeAt(0), text: ch };
+  }
+  if (/^[0-9]$/.test(ch)) {
+    return { key: ch, code: `Digit${ch}`, vk: ch.charCodeAt(0), text: ch };
+  }
+  if (ch === " ") {
+    return { key: " ", code: "Space", vk: 32, text: " " };
+  }
+  // Punctuation/unicode: no reliable physical key mapping, but a keyDown with
+  // text still fires trusted keydown/beforeinput/input and inserts the char.
+  return { key: ch, code: "", vk: 0, text: ch };
+}
 
 // Every action and assertion goes through this retry loop — auto-waiting is
 // built into the primitives themselves, never bolted on by callers.
@@ -59,35 +99,58 @@ export class Primitives {
   async click(ref: string): Promise<void> {
     const descriptor = await this.resolve(ref);
     await this.retry(this.options.defaultTimeoutMs, `waiting to click ${ref}`, async () => {
-      const state = await this.probeState(descriptor);
-      if (!state.found) return { done: false, detail: "element not found" };
-      if (!state.visible) return { done: false, detail: "element not visible" };
-      const point = await this.probe<ProbePoint | null>(descriptor, "point");
-      if (!point) return { done: false, detail: "element has no clickable area" };
-      await this.dispatchClick(point);
+      const ready = await this.readyForAction(descriptor);
+      if (!ready.ok) return { done: false, detail: ready.detail };
+      await this.dispatchClick(ready.point);
       return { done: true, value: undefined };
     });
   }
 
+  /**
+   * Click to focus, clear existing content, then type with real trusted
+   * keyboard events (keydown/keyup + input per char) so frameworks bound to
+   * keyboard or input events (React/Angular/Vue) see exactly what a user
+   * typing produces.
+   */
   async type(ref: string, text: string): Promise<void> {
     const descriptor = await this.resolve(ref);
     await this.retry(this.options.defaultTimeoutMs, `waiting to type into ${ref}`, async () => {
-      const state = await this.probeState(descriptor);
-      if (!state.found) return { done: false, detail: "element not found" };
-      if (!state.visible) return { done: false, detail: "element not visible" };
-      const point = await this.probe<ProbePoint | null>(descriptor, "point");
-      if (!point) return { done: false, detail: "element has no clickable area" };
-      await this.dispatchClick(point);
-      // Select any existing content so insertText replaces instead of appends.
-      await this.probe<boolean>(descriptor, "focus");
-      await this.session.send("Input.insertText", { text });
+      const ready = await this.readyForAction(descriptor);
+      if (!ready.ok) return { done: false, detail: ready.detail };
+      await this.dispatchClick(ready.point);
+      await this.clearFocused(descriptor);
+      await this.typeText(text);
       return { done: true, value: undefined };
     });
+  }
+
+  /** Focus the element and delete its content via a trusted Backspace. */
+  async clear(ref: string): Promise<void> {
+    const descriptor = await this.resolve(ref);
+    await this.retry(this.options.defaultTimeoutMs, `waiting to clear ${ref}`, async () => {
+      const ready = await this.readyForAction(descriptor);
+      if (!ready.ok) return { done: false, detail: ready.detail };
+      await this.dispatchClick(ready.point);
+      await this.clearFocused(descriptor);
+      return { done: true, value: undefined };
+    });
+  }
+
+  /** Press a key on whatever currently has focus (e.g. after ui.type). */
+  async press(key: string): Promise<void> {
+    const def = NAMED_KEYS[key] ?? (key.length === 1 ? charKeyDef(key) : null);
+    if (!def) {
+      throw new Error(
+        `Unknown key ${JSON.stringify(key)}. Use a single character or one of: ` +
+          Object.keys(NAMED_KEYS).join(", "),
+      );
+    }
+    await this.dispatchKey(def);
   }
 
   async expect(
     ref: string,
-    assertion: "toHaveText" | "toExist",
+    assertion: ExpectAssertion,
     expected: string | undefined,
     negated: boolean,
   ): Promise<void> {
@@ -98,17 +161,25 @@ export class Primitives {
     try {
       await this.retry(this.options.defaultTimeoutMs, describe, async () => {
         const state = await this.probeState(descriptor);
+        const normExpected = (expected ?? "").replace(/\s+/g, " ").trim();
         let condition: boolean;
         let detail: string;
         if (assertion === "toExist") {
           condition = state.found;
           detail = state.found ? "element exists" : "element not found";
+        } else if (assertion === "toHaveValue") {
+          condition = state.found && state.value !== null && state.value.trim() === (expected ?? "").trim();
+          detail = !state.found
+            ? "element not found"
+            : state.value === null
+              ? "element is not an input/textarea/select"
+              : `value was ${JSON.stringify(state.value)}`;
+        } else if (assertion === "toContainText") {
+          condition = state.found && (state.text ?? "").includes(normExpected);
+          detail = state.found ? `text was ${JSON.stringify(state.text)}` : "element not found";
         } else {
-          const normalizedExpected = (expected ?? "").replace(/\s+/g, " ").trim();
-          condition = state.found && state.text === normalizedExpected;
-          detail = state.found
-            ? `text was ${JSON.stringify(state.text)}`
-            : "element not found";
+          condition = state.found && state.text === normExpected;
+          detail = state.found ? `text was ${JSON.stringify(state.text)}` : "element not found";
         }
         const pass = negated ? !condition : condition;
         return pass ? { done: true, value: undefined } : { done: false, detail };
@@ -124,6 +195,48 @@ export class Primitives {
       format: "png",
     });
     return `data:image/png;base64,${data}`;
+  }
+
+  private async readyForAction(
+    descriptor: string,
+  ): Promise<{ ok: true; point: ProbePoint } | { ok: false; detail: string }> {
+    const state = await this.probeState(descriptor);
+    if (!state.found) return { ok: false, detail: "element not found" };
+    if (!state.visible) return { ok: false, detail: "element not visible" };
+    const point = await this.probe<ProbePoint | null>(descriptor, "point");
+    if (!point) return { ok: false, detail: "element has no clickable area" };
+    return { ok: true, point };
+  }
+
+  // Select-all (via the focus probe) then Backspace, so frameworks receive a
+  // trusted keydown + beforeinput + input for the deletion.
+  private async clearFocused(descriptor: string): Promise<void> {
+    await this.probe<boolean>(descriptor, "focus");
+    const state = await this.probeState(descriptor);
+    if ((state.value ?? state.text ?? "") !== "") {
+      await this.dispatchKey(NAMED_KEYS.Backspace);
+    }
+  }
+
+  private async typeText(text: string): Promise<void> {
+    for (const ch of text) {
+      await this.dispatchKey(ch === "\n" ? NAMED_KEYS.Enter : charKeyDef(ch));
+    }
+  }
+
+  private async dispatchKey(def: KeyDef): Promise<void> {
+    const base = {
+      key: def.key,
+      code: def.code,
+      windowsVirtualKeyCode: def.vk,
+      nativeVirtualKeyCode: def.vk,
+    };
+    await this.session.send("Input.dispatchKeyEvent", {
+      ...base,
+      type: "keyDown",
+      ...(def.text !== undefined ? { text: def.text, unmodifiedText: def.text } : {}),
+    });
+    await this.session.send("Input.dispatchKeyEvent", { ...base, type: "keyUp" });
   }
 
   private async retry<T>(

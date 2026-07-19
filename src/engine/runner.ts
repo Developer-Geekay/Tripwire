@@ -192,6 +192,12 @@ export class TestRunner {
         case "type":
           await primitives.type(command.target, command.text);
           break;
+        case "clear":
+          await primitives.clear(command.target);
+          break;
+        case "press":
+          await primitives.press(command.key);
+          break;
         case "expect":
           await primitives.expect(
             command.target,

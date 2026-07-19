@@ -4,13 +4,17 @@ import { resolve } from "node:path";
 
 // Extension pages are served from chrome-extension://<id>/, so keep paths
 // relative and never inline module preloads (MV3 CSP forbids inline scripts).
-export default defineConfig({
+// `vite build --mode development` produces the debuggable dev build:
+// unminified output with sourcemaps.
+export default defineConfig(({ mode }) => ({
   plugins: [react()],
   base: "",
   build: {
     outDir: "dist",
     emptyOutDir: true,
     modulePreload: false,
+    minify: mode === "development" ? false : "esbuild",
+    sourcemap: mode === "development",
     rollupOptions: {
       input: {
         panel: resolve(__dirname, "panel.html"),
@@ -28,4 +32,4 @@ export default defineConfig({
       },
     },
   },
-});
+}));

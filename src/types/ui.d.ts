@@ -10,16 +10,24 @@
  *   "testid=submit-btn" matches [data-testid="submit-btn"]
  *   "aria=Close dialog" matches [aria-label="Close dialog"]
  *
+ * Selectors pierce open shadow roots, so components rendered by web-component
+ * frameworks are reachable with plain CSS.
+ *
  * Every action and assertion auto-waits: it retries until the element is
  * ready (or the assertion holds), then fails cleanly after the timeout.
  */
 
 interface TripwireExpectation {
   /**
-   * Assert the element's whitespace-normalized text content equals
-   * `expected`. Retries until it matches or the timeout elapses.
+   * Assert the element's whitespace-normalized text equals `expected`.
+   * For input/textarea/select elements this reads the current value (the
+   * text you see on screen), not the empty textContent.
    */
   toHaveText(expected: string): Promise<void>;
+  /** Assert the element's text (or field value) contains `expected`. */
+  toContainText(expected: string): Promise<void>;
+  /** Assert an input/textarea/select's value equals `expected` (trimmed). */
+  toHaveValue(expected: string): Promise<void>;
   /** Assert a matching element is present in the DOM. */
   toExist(): Promise<void>;
   /** Invert the assertion: `ui.expect(".error").not.toExist()`. */
@@ -30,10 +38,24 @@ interface TripwireUi {
   /** Wait for the element to be visible, then send a trusted click. */
   click(selector: string): Promise<void>;
   /**
-   * Wait for the element to be visible, click to focus it, then type `text`,
-   * replacing any existing content.
+   * Wait for the element, click to focus, clear existing content, then type
+   * `text` using real trusted keyboard events — each character fires
+   * keydown/keyup and input, so React/Angular/Vue bindings update exactly as
+   * they would for a human typing. "\n" in the text presses Enter.
    */
   type(selector: string, text: string): Promise<void>;
+  /**
+   * Focus the element and delete its content with a trusted select-all +
+   * Backspace. Use before ui.press-driven input when you need clearing and
+   * typing as separate steps.
+   */
+  clear(selector: string): Promise<void>;
+  /**
+   * Press a key on the currently focused element (e.g. after ui.type).
+   * Accepts a single character or a named key: Enter, Tab, Backspace,
+   * Delete, Escape, ArrowLeft/Right/Up/Down, Home, End, PageUp, PageDown.
+   */
+  press(key: string): Promise<void>;
   /** Start an auto-waiting assertion on the element. */
   expect(selector: string): TripwireExpectation;
   /** Change the auto-wait timeout for subsequent steps (default 10000 ms). */

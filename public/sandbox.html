@@ -34,23 +34,23 @@
 
         function makeApi(runId) {
           function expectChain(target, negated) {
+            function assert(assertion, expected) {
+              var command = { kind: "expect", target: target, assertion: assertion, negated: negated };
+              if (expected !== undefined) command.expected = String(expected);
+              return call(runId, command);
+            }
             return {
               toHaveText: function (expected) {
-                return call(runId, {
-                  kind: "expect",
-                  target: target,
-                  assertion: "toHaveText",
-                  expected: String(expected),
-                  negated: negated,
-                });
+                return assert("toHaveText", expected);
+              },
+              toContainText: function (expected) {
+                return assert("toContainText", expected);
+              },
+              toHaveValue: function (expected) {
+                return assert("toHaveValue", expected);
               },
               toExist: function () {
-                return call(runId, {
-                  kind: "expect",
-                  target: target,
-                  assertion: "toExist",
-                  negated: negated,
-                });
+                return assert("toExist");
               },
               get not() {
                 return expectChain(target, !negated);
@@ -70,6 +70,12 @@
               },
               type: function (target, text) {
                 return call(runId, { kind: "type", target: String(target), text: String(text) });
+              },
+              clear: function (target) {
+                return call(runId, { kind: "clear", target: String(target) });
+              },
+              press: function (key) {
+                return call(runId, { kind: "press", key: String(key) });
               },
               expect: function (target) {
                 return expectChain(String(target), false);

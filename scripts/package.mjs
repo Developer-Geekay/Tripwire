@@ -12,7 +12,10 @@
 //   3. a freshly generated key (saved to .crx-key.pem locally; in CI a
 //      warning is printed because the extension ID will differ per release)
 //
-// Usage: node scripts/package.mjs   (requires `npm run build` output in dist/)
+// Usage:
+//   node scripts/package.mjs          production package (zip + crx), resets release/
+//   node scripts/package.mjs --dev    debuggable dev package (zip only, appended to
+//                                     release/) — run after `vite build --mode development`
 // RELEASE_VERSION (e.g. "v0.2.0") overrides the version stamped into the
 // manifest and the artifact names.
 
@@ -39,14 +42,19 @@ if (!/^\d+(\.\d+){1,3}$/.test(version)) {
   process.exit(1);
 }
 
+const isDev = process.argv.includes("--dev");
+
 // Stamp the release version into the packaged manifest.
 const manifestPath = resolve(distDir, "manifest.json");
 const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
 manifest.version = version;
+if (isDev) manifest.name = `${manifest.name} (Dev)`;
 writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n");
 
 let privateKey;
-if (process.env.CRX_PRIVATE_KEY?.trim()) {
+if (isDev) {
+  // Dev build ships as zip only — no signing needed.
+} else if (process.env.CRX_PRIVATE_KEY?.trim()) {
   privateKey = process.env.CRX_PRIVATE_KEY;
   console.log("using CRX signing key from CRX_PRIVATE_KEY");
 } else if (existsSync(keyPath)) {
@@ -64,12 +72,19 @@ if (process.env.CRX_PRIVATE_KEY?.trim()) {
   );
 }
 
-rmSync(releaseDir, { recursive: true, force: true });
-mkdirSync(releaseDir);
+if (!isDev) {
+  rmSync(releaseDir, { recursive: true, force: true });
+}
+mkdirSync(releaseDir, { recursive: true });
 
-const zipName = `tripwire-${version}-chromium.zip`;
+const zipName = `tripwire-${version}-chromium${isDev ? "-dev" : ""}.zip`;
 execFileSync("zip", ["-r", "-q", resolve(releaseDir, zipName), "."], { cwd: distDir });
 console.log(`wrote release/${zipName}`);
+
+if (isDev) {
+  // Dev build is for local debugging only — no signed crx, keep prod notes.
+  process.exit(0);
+}
 
 const crx = new ChromeExtension({ privateKey });
 await crx.load(distDir);

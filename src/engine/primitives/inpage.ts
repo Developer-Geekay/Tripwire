@@ -5,7 +5,10 @@
 export interface ProbeState {
   found: boolean;
   visible: boolean;
+  /** Normalized textContent — or the value for input/textarea/select. */
   text: string | null;
+  /** Raw value for input/textarea/select elements, null otherwise. */
+  value: string | null;
 }
 
 export interface ProbePoint {
@@ -19,29 +22,56 @@ export function tripwireProbe(
 ): ProbeState | ProbePoint | boolean | null {
   const sep = descriptor.indexOf(":");
   const kind = descriptor.slice(0, sep);
-  const value = descriptor.slice(sep + 1);
+  const target = descriptor.slice(sep + 1);
   const normalize = (s: string | null) => (s ?? "").replace(/\s+/g, " ").trim();
+
+  // Framework compatibility: pierce open shadow roots (web components,
+  // Angular/Lit/Stencil component libraries) — document.querySelector alone
+  // cannot see into them.
+  const collectRoots = (): Array<Document | ShadowRoot> => {
+    const roots: Array<Document | ShadowRoot> = [document];
+    for (let i = 0; i < roots.length; i++) {
+      for (const el of roots[i].querySelectorAll("*")) {
+        if (el.shadowRoot) roots.push(el.shadowRoot);
+      }
+    }
+    return roots;
+  };
+
+  const queryFirst = (selector: string): Element | null => {
+    for (const root of collectRoots()) {
+      try {
+        const hit = root.querySelector(selector);
+        if (hit) return hit;
+      } catch {
+        return null; // invalid selector
+      }
+    }
+    return null;
+  };
 
   let element: Element | null = null;
   if (kind === "css") {
-    element = document.querySelector(value);
+    element = queryFirst(target);
   } else if (kind === "testid") {
-    element = document.querySelector(`[data-testid="${value.replace(/"/g, '\\"')}"]`);
+    element = queryFirst(`[data-testid="${target.replace(/"/g, '\\"')}"]`);
   } else if (kind === "aria") {
-    element = document.querySelector(`[aria-label="${value.replace(/"/g, '\\"')}"]`);
+    element = queryFirst(`[aria-label="${target.replace(/"/g, '\\"')}"]`);
   } else if (kind === "text") {
-    // Innermost element whose whitespace-normalized text is an exact match.
-    // querySelectorAll is document order (parents first), so the last match
-    // is the deepest one.
-    const wanted = normalize(value);
-    for (const candidate of document.querySelectorAll("*")) {
-      if (candidate.tagName === "SCRIPT" || candidate.tagName === "STYLE") continue;
-      if (normalize(candidate.textContent) === wanted) element = candidate;
+    // Innermost element whose whitespace-normalized text is an exact match:
+    // traversal is document order with parents before children, so the last
+    // match is the deepest one.
+    const wanted = normalize(target);
+    for (const root of collectRoots()) {
+      for (const candidate of root.querySelectorAll("*")) {
+        if (candidate.tagName === "SCRIPT" || candidate.tagName === "STYLE") continue;
+        if (normalize(candidate.textContent) === wanted) element = candidate;
+      }
     }
   }
 
   if (action === "state") {
-    if (!element) return { found: false, visible: false, text: null };
+    if (!element) return { found: false, visible: false, text: null, value: null };
     const rect = element.getBoundingClientRect();
     const style = getComputedStyle(element);
     const visible =
@@ -49,7 +79,19 @@ export function tripwireProbe(
       rect.height > 0 &&
       style.visibility !== "hidden" &&
       style.display !== "none";
-    return { found: true, visible, text: normalize(element.textContent) };
+    const field =
+      element instanceof HTMLInputElement ||
+      element instanceof HTMLTextAreaElement ||
+      element instanceof HTMLSelectElement
+        ? element
+        : null;
+    return {
+      found: true,
+      visible,
+      // For form fields the visible text IS the value; textContent is empty.
+      text: field ? normalize(field.value) : normalize(element.textContent),
+      value: field ? field.value : null,
+    };
   }
 
   if (!element) return null;
@@ -77,7 +119,7 @@ export function tripwireProbe(
       selection?.removeAllRanges();
       selection?.addRange(range);
     }
-    return document.activeElement === el;
+    return document.activeElement === el || (el.getRootNode() as ShadowRoot).activeElement === el;
   }
 
   return null;

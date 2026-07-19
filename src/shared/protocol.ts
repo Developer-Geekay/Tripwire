@@ -7,6 +7,7 @@ export type Command =
   | { kind: "goto"; url: string }
   | { kind: "click"; target: string }
   | { kind: "type"; target: string; text: string }
+  | { kind: "fill"; target: string; text: string }
   | { kind: "clear"; target: string }
   | { kind: "press"; key: string }
   | {
@@ -56,6 +57,8 @@ export function commandLabel(command: Command): string {
       return `click ${command.target}`;
     case "type":
       return `type ${command.target} ${JSON.stringify(command.text)}`;
+    case "fill":
+      return `fill ${command.target} ${JSON.stringify(command.text)}`;
     case "clear":
       return `clear ${command.target}`;
     case "press":

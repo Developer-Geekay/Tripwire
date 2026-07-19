@@ -127,6 +127,24 @@ export class Primitives {
     });
   }
 
+  /**
+   * Set the whole value in one shot: focus, select-all, then a single trusted
+   * insertText. Fires one input event (no per-key keydown/keyup) — use when
+   * simulated keystrokes are unnecessary or undesirable; use type() when the
+   * app listens to keyboard events.
+   */
+  async fill(ref: string, text: string): Promise<void> {
+    const descriptor = await this.resolve(ref);
+    await this.retry(this.options.defaultTimeoutMs, `waiting to fill ${ref}`, async () => {
+      const ready = await this.readyForAction(descriptor);
+      if (!ready.ok) return { done: false, detail: ready.detail };
+      await this.dispatchClick(ready.point);
+      await this.probe<boolean>(descriptor, "focus");
+      await this.session.send("Input.insertText", { text });
+      return { done: true, value: undefined };
+    });
+  }
+
   /** Focus the element and delete its content via a trusted Backspace. */
   async clear(ref: string): Promise<void> {
     const descriptor = await this.resolve(ref);

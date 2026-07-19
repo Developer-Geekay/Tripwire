@@ -51,6 +51,13 @@ interface TripwireUi {
    */
   type(selector: string, text: string): Promise<void>;
   /**
+   * Set the whole value in one shot: focus, select existing content, insert
+   * `text` as a single trusted input event. Faster than type() and fires no
+   * per-key keydown/keyup — use it when the app only needs the value; use
+   * type() when it listens to keyboard events (masks, autocomplete, hotkeys).
+   */
+  fill(selector: string, text: string): Promise<void>;
+  /**
    * Focus the element and delete its content with a trusted select-all +
    * Backspace. Use before ui.press-driven input when you need clearing and
    * typing as separate steps.

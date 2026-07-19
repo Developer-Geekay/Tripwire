@@ -71,6 +71,9 @@
               type: function (target, text) {
                 return call(runId, { kind: "type", target: String(target), text: String(text) });
               },
+              fill: function (target, text) {
+                return call(runId, { kind: "fill", target: String(target), text: String(text) });
+              },
               clear: function (target) {
                 return call(runId, { kind: "clear", target: String(target) });
               },

@@ -192,6 +192,9 @@ export class TestRunner {
         case "type":
           await primitives.type(command.target, command.text);
           break;
+        case "fill":
+          await primitives.fill(command.target, command.text);
+          break;
         case "clear":
           await primitives.clear(command.target);
           break;
